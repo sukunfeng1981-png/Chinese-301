@@ -3,16 +3,36 @@
 <head>
   <meta charset="utf-8">
   <title>English Reading Practice</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-  <h2>🎤 English Reading Practice</h2>
 
-  <button id="startBtn">Start Recording</button>
-  <button id="stopBtn" disabled>Stop</button>
+  <h2>📖 Read and Repeat</h2>
+
+  <!-- 跟读句子 -->
+  <p id="sentence" style="font-size:20px;cursor:pointer;">
+    👉 I like learning English.
+  </p>
+
+  <!-- 播放标准音 -->
+  <button onclick="playModel()">🔊 Listen</button>
+
+  <hr>
+
+  <!-- 跟读录音 -->
+  <button id="startBtn">🎤 Start Recording</button>
+  <button id="stopBtn" disabled>⏹ Stop</button>
 
   <audio id="audio" controls></audio>
 
   <script>
+    // 标准音
+    const modelAudio = new Audio("model.mp3");
+
+    function playModel() {
+      modelAudio.play();
+    }
+
     let mediaRecorder;
     let audioChunks = [];
 
@@ -40,5 +60,6 @@
       document.getElementById('stopBtn').disabled = true;
     };
   </script>
+
 </body>
 </html>
