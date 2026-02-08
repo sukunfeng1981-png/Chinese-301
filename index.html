@@ -4,62 +4,65 @@
   <meta charset="utf-8">
   <title>English Reading Practice</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
-<body>
 
+<body>
   <h2>📖 Read and Repeat</h2>
 
-  <!-- 跟读句子 -->
-  <p id="sentence" style="font-size:20px;cursor:pointer;">
+  <p style="font-size:20px;">
     👉 I like learning English.
   </p>
 
-  <!-- 播放标准音 -->
   <button onclick="playModel()">🔊 Listen</button>
 
   <hr>
 
-  <!-- 跟读录音 -->
-  <button id="startBtn">🎤 Start Recording</button>
+  <button id="startBtn" disabled>🎤 Start Recording</button>
   <button id="stopBtn" disabled>⏹ Stop</button>
 
   <audio id="audio" controls></audio>
 
-  <script>
-    // 标准音
-    const modelAudio = new Audio("model.mp3");
+<script>
+  // 初始化 LIFF（非常重要）
+  async function initLIFF() {
+    await liff.init({ liffId: 2009077149-jA6ZHUPf });
+    document.getElementById("startBtn").disabled = false;
+  }
 
-    function playModel() {
-      modelAudio.play();
-    }
+  initLIFF();
 
-    let mediaRecorder;
-    let audioChunks = [];
+  // 标准音
+  const modelAudio = new Audio("model.mp3");
+  function playModel() {
+    modelAudio.play();
+  }
 
-    document.getElementById('startBtn').onclick = async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.start();
+  let mediaRecorder;
+  let audioChunks = [];
 
-      audioChunks = [];
-      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+  document.getElementById("startBtn").onclick = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start();
 
-      document.getElementById('startBtn').disabled = true;
-      document.getElementById('stopBtn').disabled = false;
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+  };
+
+  document.getElementById("stopBtn").onclick = () => {
+    mediaRecorder.stop();
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: "audio/webm" });
+      audio.src = URL.createObjectURL(blob);
     };
 
-    document.getElementById('stopBtn').onclick = () => {
-      mediaRecorder.stop();
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        document.getElementById('audio').src = audioUrl;
-      };
-
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('stopBtn').disabled = true;
-    };
-  </script>
-
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  };
+</script>
 </body>
 </html>
