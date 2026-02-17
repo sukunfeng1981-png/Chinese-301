@@ -22,7 +22,7 @@
 
         .phone-container {
             width: 100%;
-            max-width: 393px; /* iPhone 14 标准宽度 */
+            max-width: 393px;
             height: 100%;
             background: rgba(255, 255, 255, 0.15);
             position: relative;
@@ -44,7 +44,6 @@
             margin-bottom: 12px;
         }
 
-        /* 切换按钮：固定文字 */
         .lang-switch-btn {
             background: #2c3e50;
             color: #f4f1de;
@@ -57,15 +56,15 @@
             box-shadow: 2px 3px 8px rgba(0,0,0,0.15);
             transition: all 0.2s ease;
         }
-        .lang-switch-btn:active { transform: scale(0.92); background: #1a252f; }
+        .lang-switch-btn:active { transform: scale(0.92); }
 
         .score-board {
             text-align: right;
             color: #c0392b;
             font-weight: bold;
-            line-height: 1.1;
         }
-        .score-val { font-size: 28px; display: block; }
+        .score-label { font-size: 12px; opacity: 0.8; }
+        .score-val { font-size: 24px; display: block; letter-spacing: 1px; }
 
         h1 {
             margin: 0;
@@ -73,10 +72,9 @@
             color: #2c3e50;
             border-left: 5px solid #c0392b;
             padding-left: 12px;
-            letter-spacing: 1px;
         }
 
-        /* 3. 句子列表：左对齐排版 */
+        /* 3. 句子列表 */
         .sentence-list {
             flex: 1;
             overflow-y: auto;
@@ -90,57 +88,61 @@
             background: rgba(255, 255, 255, 0.65);
             border: 1px solid rgba(44, 62, 80, 0.1);
             margin-bottom: 12px;
-            padding: 20px 18px;
+            padding: 22px 18px;
             border-radius: 12px;
             cursor: pointer;
             position: relative;
-            display: flex; /* 使用 flex 实现序号和文字对齐 */
-            align-items: flex-start;
-            transition: all 0.3s ease;
+            display: flex; 
+            align-items: center; /* 序号与文字水平居中对齐 */
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 序号样式 */
         .sentence-no {
             font-size: 18px;
             color: #7f8c8d;
-            margin-right: 12px;
-            min-width: 25px;
+            margin-right: 15px;
+            min-width: 30px;
             font-family: Arial, sans-serif;
+            text-align: center;
         }
 
-        /* 文字内容区 */
         .text-content {
             font-size: 21px;
-            text-align: left; /* 左对齐 */
-            line-height: 1.4;
+            text-align: left;
+            line-height: 1.2;
             flex: 1;
+            transition: transform 0.3s ease; /* 放大效果的平滑过渡 */
         }
 
-        /* 切换逻辑样式控制 */
-        .zh-span { display: none; opacity: 0; }
-        .th-span { display: block; opacity: 1; font-family: "Leelawadee", "Thonburi", sans-serif; }
+        .zh-span { display: none; }
+        .th-span { display: block; font-family: "Leelawadee", "Thonburi", sans-serif; }
 
-        /* 切换状态：显示中文 */
-        .show-zh .zh-span { display: block; opacity: 1; animation: fadeIn 0.4s; }
+        .show-zh .zh-span { display: block; animation: fadeIn 0.4s; }
         .show-zh .th-span { display: none; }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-5px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        /* 4. 交互与锁定状态 */
+        /* 4. 交互：放大 20% 效果 */
         .locked-mode .sentence-item {
             pointer-events: none;
             opacity: 0.6;
         }
+        
         .playing-now {
             border: 1px solid #c0392b !important;
             background-color: #fff !important;
-            box-shadow: 0 4px 12px rgba(192, 57, 43, 0.08);
+            box-shadow: 0 8px 20px rgba(192, 57, 43, 0.15);
         }
 
-        /* 底部装饰 */
+        /* 句子文字放大 20% */
+        .playing-now .text-content {
+            transform: scale(1.2); 
+            color: #c0392b;
+        }
+
         .footer-deco {
             height: 30px;
             text-align: center;
@@ -158,7 +160,8 @@
             <div class="top-bar">
                 <button class="lang-switch-btn" onclick="toggleLanguage()">中文 / ไทย</button>
                 <div class="score-board">
-                    总分 <span class="score-val" id="totalScore">0</span>
+                    <span class="score-label">掌握进度</span>
+                    <span class="score-val" id="totalScore">0/10</span>
                 </div>
             </div>
             <h1>汉语口语301</h1>
@@ -170,7 +173,6 @@
     </div>
 
     <script>
-        // 1. 数据配置
         const sentences = [
             { id: 1, zh: "你好", th: "สวัสดี" },
             { id: 2, zh: "你好吗", th: "คุณสบายดีไหม" },
@@ -184,27 +186,25 @@
             { id: 10, zh: "很忙、你呢", th: "ยุ่งมาก คุณล่ะ" }
         ];
 
-        let totalScore = 0;
-        const clickCounts = {};
-        const audioToggles = {}; // true: 播放 a 版, false: 播放 b 版
+        // 记录已经听过的句子（使用 Set 确保唯一性）
+        const learnedSentences = new Set();
+        const audioToggles = {}; 
         const audioObj = new Audio();
         
         let isChineseActive = false;
-        let lastPlayedId = null; // 记录上一次播放的句子 ID
+        let lastPlayedId = null;
 
         const listEl = document.getElementById('list');
         const scoreEl = document.getElementById('totalScore');
 
-        // 2. 初始化
         function init() {
             sentences.forEach(s => {
-                clickCounts[s.id] = 0;
-                audioToggles[s.id] = true; // 默认每个句子都是 a 版开始
+                audioToggles[s.id] = true;
 
                 const li = document.createElement('li');
                 li.className = 'sentence-item';
                 li.innerHTML = `
-                    <div class="sentence-no">${s.id}.</div>
+                    <div class="sentence-no">${s.id}</div>
                     <div class="text-content">
                         <span class="zh-span">${s.zh}</span>
                         <span class="th-span">${s.th}</span>
@@ -213,47 +213,38 @@
                 li.onclick = () => handlePlay(s, li);
                 listEl.appendChild(li);
             });
+            updateScore();
         }
 
-        // 3. 核心功能逻辑
         function toggleLanguage() {
             isChineseActive = !isChineseActive;
-            if (isChineseActive) {
-                document.body.classList.add('show-zh');
-            } else {
-                document.body.classList.remove('show-zh');
-            }
+            document.body.classList.toggle('show-zh', isChineseActive);
+        }
+
+        function updateScore() {
+            scoreEl.innerText = `${learnedSentences.size}/${sentences.length}`;
         }
 
         function handlePlay(s, element) {
-            // A. 锁定 UI
             document.body.classList.add('locked-mode');
             element.classList.add('playing-now');
 
-            // B. 计分逻辑
-            if (clickCounts[s.id] === 0) totalScore += 5;
-            else totalScore += 1;
-            clickCounts[s.id]++;
-            scoreEl.innerText = totalScore;
+            // 计分逻辑：记录该 ID 已学过
+            learnedSentences.add(s.id);
+            updateScore();
 
-            // C. 智能音频切换逻辑
-            // 如果点击的是同一个句子，切换 a/b；如果是新句子，重置为 a
+            // 音频逻辑
             if (lastPlayedId !== s.id) {
-                audioToggles[s.id] = true; // 重置回 a 版
+                audioToggles[s.id] = true; 
             }
             
             let fileName = audioToggles[s.id] ? `${s.id}.mp3` : `${s.id}-b.mp3`;
             audioObj.src = `audio/${fileName}`;
             
-            // 为下一次“连续点击”准备反转
             audioToggles[s.id] = !audioToggles[s.id];
-            lastPlayedId = s.id; // 更新最后点击记录
+            lastPlayedId = s.id;
 
-            // D. 播放并解锁
-            audioObj.play().catch(e => {
-                console.error("音频文件未找到:", fileName);
-                unlock(element);
-            });
+            audioObj.play().catch(e => unlock(element));
             audioObj.onended = () => unlock(element);
         }
 
