@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Chinese SDU</title>
+    <title>Chinese SDU - 100 Sentences</title>
     <style>
-        /* 1. 基础样式：水墨宣纸风 */
         body {
             margin: 0;
             padding: 0;
@@ -31,7 +30,6 @@
             box-sizing: border-box;
         }
 
-        /* 2. 顶部固定导航 */
         header {
             padding: 50px 25px 15px;
             z-index: 100;
@@ -57,24 +55,23 @@
             transition: all 0.2s;
         }
 
-        /* 重置按钮样式 */
-        .reset-btn {
-            background: transparent;
-            color: #7f8c8d;
-            border: 1px solid #7f8c8d;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            margin-top: 5px;
-            cursor: pointer;
-        }
-
         .score-board {
             text-align: right;
             color: #c0392b;
             font-weight: bold;
         }
         .score-val { font-size: 22px; display: block; }
+
+        .reset-btn {
+            background: transparent;
+            color: #7f8c8d;
+            border: 1px solid #7f8c8d;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-top: 4px;
+        }
 
         h1 {
             margin: 0;
@@ -84,7 +81,6 @@
             padding-left: 12px;
         }
 
-        /* 3. 句子列表 */
         .sentence-list {
             flex: 1;
             overflow-y: auto;
@@ -101,21 +97,20 @@
             padding: 20px 18px;
             border-radius: 15px;
             cursor: pointer;
-            position: relative;
             display: flex; 
             align-items: center;
             transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
             z-index: 1;
         }
 
         .sentence-no {
-            font-size: 16px;
+            font-size: 18px;
             color: #7f8c8d;
             margin-right: 15px;
-            min-width: 30px;
+            min-width: 35px;
             font-family: Arial, sans-serif;
-            text-align: center;
-            opacity: 0.8;
+            font-weight: bold;
         }
 
         .text-content {
@@ -126,27 +121,28 @@
             color: #2c3e50;
         }
 
+        /* 核心显示逻辑 */
         .zh-span { display: none; }
         .th-span { display: block; font-family: "Leelawadee", sans-serif; }
 
+        /* 切换至中文模式 */
         .show-zh .zh-span { display: block; }
         .show-zh .th-span { display: none; }
 
-        /* 4. 交互：MacBook Dock 膨胀 */
         .locked-mode .sentence-item:not(.playing-now) {
-            pointer-events: none;
             opacity: 0.5;
         }
         
+        /* MacBook Dock 膨胀效果 1.2倍 */
         .playing-now {
             background-color: #ffffff !important;
             border: 1px solid #e74c3c !important;
             transform: scale(1.2) !important; 
-            z-index: 999; 
+            z-index: 999 !important; 
             box-shadow: 0 15px 40px rgba(192, 57, 43, 0.3);
         }
 
-        .playing-now .text-content {
+        .playing-now .text-content, .playing-now .sentence-no {
             color: #c0392b;
             font-weight: bold;
         }
@@ -157,7 +153,6 @@
             opacity: 0.2;
             font-size: 12px;
             color: #2c3e50;
-            background: #f4f1de;
         }
     </style>
 </head>
@@ -180,7 +175,6 @@
     </div>
 
     <script>
-        [cite_start]// [cite: 1, 2] 100个句子数据
         const sentences = [
             { id: 1, th: "สวัสดี", zh: "你好" },
             { id: 2, th: "คุณสบายดีไหม", zh: "你好吗，" },
@@ -232,7 +226,7 @@
             { id: 48, th: "บ้านคุณอยู่ที่ไหน", zh: "你家在哪儿，" },
             { id: 49, th: "ยินดีต้อนรับคุณไปเที่ยว", zh: "欢迎你去玩，" },
             { id: 50, th: "เขาไปบ่อย", zh: "她常去，" },
-            { id: 51, th: "พวกเราไปด้วยกันเถอะ", zh: "我们一起去吧，" },
+            { id: 51, th: "พวกเราไปด้วยกันเถอะ", zh: "เรามาเริ่มกันเถอะ" },
             { id: 52, th: "ถ้าอย่างนั้นดีมากๆเลย", zh: "那太好了，" },
             { id: 53, th: "ตึก 8 อยู่ข้างที่ทำการไปรษณีย์", zh: "八号楼在邮局旁边，" },
             { id: 54, th: "ไปตึก 8 ไปอย่างไร", zh: "去八号楼怎么走，" },
@@ -293,7 +287,6 @@
         const listEl = document.getElementById('list');
         const scoreEl = document.getElementById('totalScore');
 
-        // 初始化：加载本地存储的进度
         function loadSavedProgress() {
             const saved = localStorage.getItem('chineseProgress');
             if (saved) {
@@ -301,29 +294,27 @@
             }
         }
 
-        // 保存进度到本地
         function saveProgress() {
             localStorage.setItem('chineseProgress', JSON.stringify([...learnedSentences]));
         }
 
-        // 重置进度
         function resetProgress() {
             if (confirm("确定要清空所有学习记录吗？")) {
                 learnedSentences.clear();
                 saveProgress();
                 updateScore();
-                alert("进度已清空");
+                window.location.reload();
             }
         }
 
         function init() {
-            loadSavedProgress(); // 第一步：读取缓存
+            loadSavedProgress();
             sentences.forEach(s => {
                 audioToggles[s.id] = true;
                 const li = document.createElement('li');
                 li.className = 'sentence-item';
                 li.innerHTML = `
-                    <div class="sentence-no">${s.id}</div>
+                    <div class="sentence-no">${s.id}.</div>
                     <div class="text-content">
                         <span class="zh-span">${s.zh}</span>
                         <span class="th-span">${s.th}</span>
@@ -348,12 +339,13 @@
             document.body.classList.add('locked-mode');
             element.classList.add('playing-now');
 
-            // 掌握新句子并立即保存
             learnedSentences.add(s.id);
-            saveProgress(); 
+            saveProgress();
             updateScore();
 
-            if (lastPlayedId !== s.id) audioToggles[s.id] = true; 
+            if (lastPlayedId !== s.id) {
+                audioToggles[s.id] = true; 
+            }
             
             let fileName = audioToggles[s.id] ? `${s.id}.mp3` : `${s.id}-b.mp3`;
             audioObj.src = `audio/${fileName}`;
@@ -361,7 +353,7 @@
             audioToggles[s.id] = !audioToggles[s.id];
             lastPlayedId = s.id;
 
-            audioObj.play().catch(e => unlock(element));
+            audioObj.play().catch(() => unlock(element));
             audioObj.onended = () => unlock(element);
         }
 
