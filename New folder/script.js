@@ -1,5 +1,5 @@
 const sentences = [
-{ id: 1, th: "สวัสดี", zh: "你好，" },
+            { id: 1, th: "สวัสดี", zh: "你好，" },
             { id: 2, th: "สบายดีไหม", zh: "你好吗？" },
             { id: 3, th: "สบายดี", zh: "我很好，" },
             { id: 4, th: "ฉันก็สบายดี", zh: "我也很好，" },
@@ -91,7 +91,6 @@ const sentences = [
             { id: 90, th: "กรุณานับหน่อยด้วย", zh: "请数一数，" },
             { id: 91, th: "จะสายแล้วนะ", zh: "时间不早了，" },
             { id: 92, th: "พวกเรารีบไปกันเถอะ", zh: "我们快走吧，" },
-      { id: 第15课, th: "", zh: "" },
             { id: 93, th: "นี่เป็นโปสการ์ดออกใหม่", zh: "这是新出的明信片，" },
             { id: 94, th: "ยังมีที่สวยๆอีกไหม", zh: "还有好看的吗，" },
             { id: 95, th: "แบบนี้เป็นอย่างไรบ้าง", zh: "这几种怎么样？" },
@@ -99,7 +98,9 @@ const sentences = [
             { id: 97, th: "เอาแบบละ 1 ชุด", zh: "一种买一套吧，" },
             { id: 98, th: "โทรศัพท์แบตหมดแล้ว", zh: "手机没电了，" },
             { id: 99, th: "คุณโทรติดหรือยัง", zh: "你打通电话了吗？" },
-            { id: 100, th: "เขาปิดเครื่องแล้ว", zh: "她关机了，" }
+            { id: 100, th: "เขาปิดเครื่องแล้ว", zh: "她关机了，" } 
+   	// { id: "第1课", th: "", zh: "" }, 
+ 	// 核心修改 1：加引号修复语法错误，th和zh为空代表它是标题栏
 
 ];
 
@@ -131,7 +132,7 @@ async function init() {
         }
     } catch (err) { console.warn("LIFF Load Fail"); }
     renderList();
-    ui.langBtn.onclick = toggleLanguage;
+    document.querySelector('.lang-wrapper').onclick = toggleLanguage;
     updateScore(false);
 }
 
@@ -139,15 +140,26 @@ function renderList() {
     const fragment = document.createDocumentFragment();
     sentences.forEach(s => {
         const li = document.createElement('li');
-        li.className = 'sentence-item';
-        li.id = `item-${s.id}`;
-        li.innerHTML = `
-            <div class="sentence-no">${s.id}</div>
-            <div class="text-content">
-                <div class="zh-text">${s.zh}</div>
-                <div class="th-text">${s.th}</div>
-            </div>`;
-        li.onclick = () => handlePlay(s, li);
+        
+        // 核心修改 2：检查是否为纯文本标题项（通过判断 th 和 zh 是否都为空）
+        const isHeader = !s.th && !s.zh;
+        
+        if (isHeader) {
+            li.className = 'sentence-header'; // 赋予专门的标题样式类
+            li.id = `header-${s.id}`;
+            li.innerHTML = `<div class="header-title">${s.id}</div>`;
+            // 标题行不需要绑定点击事件
+        } else {
+            li.className = 'sentence-item';
+            li.id = `item-${s.id}`;
+            li.innerHTML = `
+                <div class="sentence-no">${s.id}</div>
+                <div class="text-content">
+                    <div class="zh-text">${s.zh}</div>
+                    <div class="th-text">${s.th}</div>
+                </div>`;
+            li.onclick = () => handlePlay(s, li);
+        }
         fragment.appendChild(li);
     });
     ui.list.appendChild(fragment);
@@ -156,13 +168,18 @@ function renderList() {
 function toggleLanguage() {
     if (isAudioPlaying) return;
     isChineseMode = !isChineseMode;
+    
+    // 核心修复：同步切换按钮的 CSS 类名，让白圈产生滑动动画
+    if (isChineseMode) {
+        ui.langBtn.classList.add('chinese');
+    } else {
+        ui.langBtn.classList.remove('chinese');
+    }
+
     document.querySelectorAll('.zh-text').forEach(el => el.style.display = isChineseMode ? 'block' : 'none');
     document.querySelectorAll('.th-text').forEach(el => el.style.display = isChineseMode ? 'none' : 'block');
 }
 
-/**
- * 修改后的 handlePlay 逻辑
- */
 function handlePlay(s, element) {
     if (isAudioPlaying) return;
     
@@ -170,7 +187,7 @@ function handlePlay(s, element) {
 
     isAudioPlaying = true;
     ui.body.classList.add('locked-mode');
-    element.classList.add('playing-now'); // 开始朗读，应用缩放效果
+    element.classList.add('playing-now');
 
     const isFirstTime = !learnedSentences.has(s.id); 
     mainAudio.src = `audio/${s.id}.mp3`;
@@ -185,31 +202,24 @@ function handlePlay(s, element) {
         }, 30);
     };
 
-    // 当句子朗读结束时
     mainAudio.onended = () => {
-        
-        // --- 核心修改：朗读一结束，立刻移除缩放效果 ---
         element.classList.remove('playing-now');
         element.classList.add('has-learned');
 
-        // --- 同时开始播放反馈音效 ---
         const feedbackAudio = isFirstTime ? scoreAudio : bubbleAudio;
         feedbackAudio.currentTime = 0;
         feedbackAudio.play().catch(()=>{});
 
-        // 逻辑处理：更新分数
         if (isFirstTime) {
             learnedSentences.add(s.id);
             updateScore(false); 
         }
 
-        // 音效播放结束后，彻底解除锁定（允许点击下一句）
         feedbackAudio.onended = () => {
             isAudioPlaying = false;
             ui.body.classList.remove('locked-mode');
         };
 
-        // 容错处理
         feedbackAudio.onerror = () => {
             isAudioPlaying = false;
             ui.body.classList.remove('locked-mode');
@@ -227,9 +237,12 @@ function handlePlay(s, element) {
 
 function updateScore(shouldPlaySound = true) {
     const current = learnedSentences.size;
-    const total = sentences.length;
+    
+    // 核心修改 3：计算总数时，过滤掉那些作为标题的纯文本项
+    const total = sentences.filter(s => s.th || s.zh).length;
+    
     ui.score.textContent = `${current}/${total}`;
-    ui.progress.style.width = `${(current / total) * 100}%`;
+    ui.progress.style.width = `${total > 0 ? (current / total) * 100 : 0}%`;
     if (shouldPlaySound) {
         scoreAudio.currentTime = 0;
         scoreAudio.play().catch(()=>{});
@@ -246,6 +259,47 @@ function showCongrats() {
     document.getElementById('userName').textContent = userProfile.name;
     document.getElementById('userImg').src = userProfile.avatar || 'images/default-avatar.jpg';
     document.getElementById('congrats-overlay').style.display = 'flex';
+}
+// ==========================================
+// 初始化 Supabase 客戶端 (從 3.html 提取)
+// ==========================================
+const supabaseUrl = 'https://tpxvlpkyxzuqcnhkuaos.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRweHZscGt5eHp1cWNuaGt1YW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzI4NjcsImV4cCI6MjA4NzYwODg2N30.ZKZuZ1tazEVInlmU3IBQ_1DuRCvUedqpyqSRlbOw3Bk';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+// ==========================================
+// 點擊祝賀頁面 "X" 觸發的自動化動作
+// ==========================================
+async function handleUploadAndClose() {
+    const name = userProfile.name || "LINE同学"; 
+    
+    // 安全地獲取 h1 標籤裡的課程名稱
+    const lessonElement = document.getElementById('lessonTitle');
+    const lesson = lessonElement ? lessonElement.innerText : "未知课程"; 
+
+    try {
+        // 動作 1：默默同步數據到雲端
+        const { error } = await supabaseClient
+            .from('learning_logs')
+            .insert([{ 
+                student_name: name, 
+                lesson_id: lesson, 
+                created_at: new Date()
+            }]);
+
+        if (error) {
+            console.error("Supabase 儲存失敗:", error.message);
+        } else {
+            console.log(`數據已成功遞交至 Supabase！課程：${lesson}`);
+        }
+    } catch (err) {
+        console.error("執行上傳時發生異常:", err);
+    } finally {
+        // 動作 2：不論網路成敗，必定關閉 LINE 視窗
+        if (typeof liff !== 'undefined' && liff.closeWindow) {
+            liff.closeWindow();
+        }
+    }
 }
 
 window.onload = init;
